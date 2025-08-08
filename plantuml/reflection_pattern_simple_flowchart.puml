@@ -1,0 +1,44 @@
+@startuml reflection_pattern_simple_flowchart
+!theme aws-orange
+title Reflection Pattern - Simple Algorithm Flow
+
+start
+
+:Initialize ReflectionAgent;
+note right: LLM model + system prompts
+
+:Setup chat histories\n(max 3 messages each);
+
+:Add user request;
+
+:step = 0;
+
+while (step < n_steps?) is (yes)
+  :Generate content using LLM;
+  :Add to generation history;
+  
+  :Send content to reflection LLM;
+  :Get critique;
+  
+  if (critique contains "<OK>"?) then (yes)
+    :Print "Stop sequence found";
+    break
+  endif
+  
+  :Add critique to generation history;
+  :step = step + 1;
+endwhile (no)
+
+:Return final content;
+
+stop
+
+note bottom
+**Key Features:**
+• Iterative self-improvement
+• Dual LLM roles (generator + critic)
+• Memory-efficient history management
+• Smart stopping conditions
+end note
+
+@enduml

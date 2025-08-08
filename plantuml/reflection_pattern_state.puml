@@ -1,0 +1,51 @@
+@startuml reflection_pattern_state
+!theme aws-orange
+title Reflection Pattern - State Diagram
+
+[*] --> Initialized : Create ReflectionAgent
+
+state Initialized {
+  Initialized : Setup LLM client
+  Initialized : Configure system prompts
+  Initialized : Create chat histories
+}
+
+Initialized --> Generating : Start iteration
+
+state "Main Loop" as Loop {
+  
+  state Generating {
+    Generating : Send prompt to LLM
+    Generating : Receive generated content
+    Generating : Update generation history
+  }
+  
+  state Reflecting {
+    Reflecting : Send content to critic LLM
+    Reflecting : Analyze and critique
+    Reflecting : Generate feedback
+  }
+  
+  state Evaluating {
+    Evaluating : Check if "<OK>" in critique
+    Evaluating : Check iteration count
+  }
+  
+  Generating --> Reflecting : Content ready
+  Reflecting --> Evaluating : Critique ready
+  Evaluating --> Generating : Continue iteration
+  Evaluating --> [*] : Stop condition met
+}
+
+note top of Loop
+Main iteration cycle:
+Generate → Reflect → Evaluate
+end note
+
+note bottom
+Stop conditions:
+• Critique contains "<OK>"
+• Max iterations reached
+end note
+
+@enduml

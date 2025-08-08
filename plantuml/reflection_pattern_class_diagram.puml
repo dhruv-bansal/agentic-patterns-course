@@ -1,0 +1,88 @@
+@startuml reflection_pattern_class_diagram
+!theme aws-orange
+title Reflection Pattern - Class Structure and Implementation
+
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 10
+
+package "Reflection Pattern Implementation" {
+    
+    class ReflectionAgent {
+        - client: Groq
+        - model: str = "llama-3.3-70b-versatile"
+        
+        + __init__(model: str)
+        + generate(generation_history: list, verbose: int) : str
+        + reflect(reflection_history: list, verbose: int) : str
+        + run(user_msg: str, generation_system_prompt: str, 
+              reflection_system_prompt: str, n_steps: int, verbose: int) : str
+        - _request_completion(history: list, verbose: int, 
+                            log_title: str, log_color: str) : str
+    }
+    
+    class FixedFirstChatHistory {
+        - messages: list
+        - total_length: int
+        - first_message: dict
+        
+        + __init__(initial_messages: list, total_length: int)
+        + append(message: dict)
+        + get_messages() : list
+    }
+    
+    class "System Prompts" as prompts {
+        + BASE_GENERATION_SYSTEM_PROMPT: str
+        + BASE_REFLECTION_SYSTEM_PROMPT: str
+    }
+    
+    note top of prompts
+        **Generation Prompt:**
+        "Generate best content possible.
+        If critique provided, respond 
+        with revised version."
+        
+        **Reflection Prompt:**
+        "Generate critique and recommendations.
+        If content is perfect, output <OK>"
+    end note
+}
+
+package "External Dependencies" {
+    class Groq {
+        + chat.completions.create()
+    }
+    
+    class "Utility Functions" as utils {
+        + build_prompt_structure()
+        + completions_create()
+        + update_chat_history()
+        + fancy_step_tracker()
+    }
+}
+
+ReflectionAgent --> Groq : uses
+ReflectionAgent --> FixedFirstChatHistory : creates (2 instances)
+ReflectionAgent --> utils : uses
+ReflectionAgent --> prompts : uses
+
+note bottom of ReflectionAgent
+    **Key Implementation Details:**
+    
+    1. **Dual History Management:**
+       - generation_history: For generator LLM
+       - reflection_history: For critic LLM
+    
+    2. **Memory Management:**
+       - Limited to 3 messages per history
+       - Prevents context overflow in long iterations
+    
+    3. **Stopping Conditions:**
+       - Fixed number of steps (n_steps)
+       - <OK> signal from reflection agent
+    
+    4. **Workflow:**
+       Generate → Reflect → Critique → 
+       Refine → Repeat
+end note
+
+@enduml

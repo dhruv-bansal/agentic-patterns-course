@@ -1,0 +1,48 @@
+@startuml reflection_pattern_activity
+!theme aws-orange
+title Reflection Pattern - Activity Diagram
+
+|User|
+start
+:Submit request;
+
+|ReflectionAgent|
+:Initialize with model;
+:Setup system prompts;
+:Create chat histories;
+
+|Generation Phase|
+repeat
+  :Generate content;
+  :Store in history;
+  
+|Reflection Phase|
+  :Critique content;
+  :Analyze quality;
+  
+  if (Content satisfactory?) then (yes)
+    :Output "<OK>";
+    stop
+  else (no)
+    :Provide critique;
+  endif
+  
+|Generation Phase|
+  :Incorporate feedback;
+  :Refine content;
+  
+repeat while (More iterations needed?)
+
+|User|
+:Receive final content;
+stop
+
+note right
+**Pattern Benefits:**
+• Iterative improvement
+• Quality assurance
+• Self-correction
+• Reduced manual review
+end note
+
+@enduml

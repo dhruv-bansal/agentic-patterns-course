@@ -1,0 +1,93 @@
+@startuml reflection_pattern
+!theme aws-orange
+title Reflection Pattern - Agentic LLM Workflow
+
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 15
+
+actor User as user
+participant "Generation Agent\n(LLM as Generator)" as generator
+participant "Reflection Agent\n(LLM as Critic)" as reflector
+database "Generation History\n(Max 3 messages)" as gen_history
+database "Reflection History\n(Max 3 messages)" as ref_history
+
+note over user, ref_history
+  **Reflection Pattern**: Iterative self-improvement through generation and critique
+  Based on Andrew Ng's Agentic Patterns
+end note
+
+user -> generator: Initial Request\n(e.g., "Generate Python MergeSort")
+activate generator
+
+generator -> gen_history: Store system prompt\n+ user request
+generator -> generator: Generate initial\ncontent/code
+generator -> gen_history: Store generated content
+generator --> user: Initial Generation\n(Version 1)
+
+note right of generator
+  **Generation Step**
+  System Prompt: "Generate best content possible.
+  If critique provided, respond with revised version."
+end note
+
+user -> reflector: Send generated content\nfor critique
+activate reflector
+
+reflector -> ref_history: Store critique system prompt\n+ generated content
+reflector -> reflector: Analyze & critique\ngenerated content
+
+note right of reflector
+  **Reflection Step**
+  System Prompt: "Generate critique and recommendations.
+  If content is perfect, output <OK>"
+end note
+
+reflector -> ref_history: Store critique
+reflector --> user: Critique & Suggestions\n(Improvement points)
+
+alt Critique contains "<OK>"
+    user -> user: Stop iteration\n(Content is satisfactory)
+else More improvements needed
+    user -> generator: Send critique as\nuser feedback
+    generator -> gen_history: Add critique to history
+    generator -> generator: Refine content based\non critique
+    generator -> gen_history: Store refined content
+    generator --> user: Improved Generation\n(Version 2)
+    
+    note over generator, reflector
+      **Iterative Loop**
+      Process repeats for n_steps (default: 10)
+      or until <OK> signal received
+    end note
+    
+    user -> reflector: Send refined content\nfor further critique
+    reflector -> ref_history: Update with new content
+    reflector -> reflector: Generate new critique\nor approve
+    reflector -> ref_history: Store new critique
+    reflector --> user: New Critique or <OK>
+    
+    loop Until n_steps reached or <OK> received
+        user -> generator: Apply new critique
+        generator -> generator: Further refinement
+        generator --> user: Enhanced version
+        user -> reflector: Request new critique
+        reflector --> user: Critique or approval
+    end
+end
+
+deactivate generator
+deactivate reflector
+
+note over user
+  **Final Result**: Iteratively improved content
+  through multiple generation-reflection cycles
+end note
+
+footer
+  Reflection Pattern Implementation
+  - Fixed message history (3 messages max) to prevent context overflow
+  - Two separate LLM instances with different system prompts
+  - Automatic stopping when quality threshold reached
+endfooter
+
+@enduml

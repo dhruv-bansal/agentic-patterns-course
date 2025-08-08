@@ -1,0 +1,65 @@
+@startuml reflection_pattern_flowchart
+!theme aws-orange
+title Reflection Pattern - Algorithm Flow
+
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 15
+
+start
+
+:Initialize ReflectionAgent with LLM model;
+note right: Default: llama-3.3-70b-versatile
+
+:Setup Generation & Reflection\nSystem Prompts;
+note left
+  **Generation Prompt:**
+  Act as content generator,
+  accept critique, revise accordingly
+  
+  **Reflection Prompt:**
+  Act as critic, provide feedback,
+  output <OK> if satisfied
+end note
+
+:Create Fixed Chat Histories\n(max 3 messages each);
+note right: Prevents context overflow
+
+:Add user request to\ngeneration history;
+
+partition "Main Loop" {
+  repeat
+    :Generate Content;
+    :Send generation history to LLM;
+    :Receive generated content;
+    :Update generation history;
+    :Add content to reflection history;
+    
+    :Reflect on Content;
+    :Send reflection history to LLM;
+    :Receive critique;
+    
+    if (Critique contains "<OK>"?) then (yes)
+      :Print stop message;
+      stop
+    else (no)
+      :Add critique to generation history;
+      :Update reflection history;
+    endif
+    
+  repeat while (Step < n_steps?) is (yes)
+  ->no;
+}
+
+:Return final generated content;
+
+stop
+
+note bottom
+  **Key Features:**
+  • Iterative improvement through self-critique
+  • Automatic stopping when quality threshold met
+  • Memory-efficient with fixed history size
+  • Dual-agent approach (generator + critic)
+end note
+
+@enduml
