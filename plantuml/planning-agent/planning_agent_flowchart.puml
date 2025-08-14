@@ -1,0 +1,65 @@
+@startuml Planning Agent - ReAct Flowchart
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam activity {
+    BackgroundColor #E8F4F8
+    BorderColor #2E86AB
+    FontName Arial
+}
+
+title **Planning Agent: ReAct Pattern Flowchart**\nStep-by-Step Process Flow
+
+start
+
+:**User provides complex task**;
+note right
+    Example: "Calculate sum of 1234 and 5678,
+    multiply by 5, then take logarithm"
+end note
+
+:**THINK**: Analyze the problem
+and decide what action to take;
+
+:**ACT**: Call appropriate tool
+with calculated parameters;
+note right
+    Available tools:
+    • sum_two_elements()
+    • multiply_two_elements()
+    • compute_log()
+end note
+
+:**Wait for tool result**;
+
+:**OBSERVE**: Receive and 
+analyze tool output;
+
+if (Task complete?) then (Yes)
+    :**Provide final response**
+    combining all results;
+    stop
+else (No, more work needed)
+    :**Update context with
+    new information**;
+    :**THINK**: Plan next step
+    based on current progress;
+    detach
+endif
+
+note bottom
+    **Key Characteristics:**
+    • **Iterative**: Repeats until goal achieved
+    • **Contextual**: Each step builds on previous results  
+    • **Flexible**: Can adapt to unexpected outcomes
+    • **Transparent**: Each step is explicit and traceable
+end note
+
+note top
+    **ReAct = Reasoning + Acting**
+    This pattern combines logical reasoning
+    with the ability to take concrete actions,
+    making AI agents much more capable
+    of handling complex, multi-step tasks.
+end note
+
+@enduml

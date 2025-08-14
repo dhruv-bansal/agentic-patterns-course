@@ -1,0 +1,102 @@
+@startuml Planning Agent - ReAct Pattern State Diagram
+!theme plain
+' skinparam backgroundColor #FAFAFA
+skinparam state {
+    BackgroundColor #E8F4F8
+    BorderColor #2E86AB
+    FontName Arial
+    FontSize 11
+}
+skinparam note {
+    BackgroundColor #FFF2CC
+    BorderColor #D6B656
+    FontSize 10
+}
+
+title **Planning Agent: ReAct (Reasoning + Acting) Pattern**\nHow AI Agents Break Down Complex Tasks into Manageable Steps
+
+[*] --> UserQuestion : User provides\na complex task
+
+state UserQuestion {
+    UserQuestion : **User Input**
+    UserQuestion : "Calculate sum of 1234 and 5678,\nmultiply by 5, then take logarithm"
+}
+
+state Thinking {
+    Thinking : **THOUGHT Phase**
+    Thinking : Agent analyzes the problem
+    Thinking : and decides next action
+    Thinking : --
+    Thinking : "I need to add 1234 + 5678 first"
+}
+
+state ActionDecision <<choice>>
+
+state ToolExecution {
+    ToolExecution : **ACTION Phase**
+    ToolExecution : Agent calls a specific tool
+    ToolExecution : with calculated parameters
+    ToolExecution : --
+    ToolExecution : Tool: sum_two_elements(1234, 5678)
+}
+
+state WaitingForResult {
+    WaitingForResult : **Waiting**
+    WaitingForResult : Tool executes and
+    WaitingForResult : returns result
+}
+
+state Observation {
+    Observation : **OBSERVATION Phase**
+    Observation : Agent receives tool output
+    Observation : and evaluates progress
+    Observation : --
+    Observation : "Result: 6912. Next I need to multiply by 5"
+}
+
+state ProgressEvaluation <<choice>>
+
+state TaskComplete {
+    TaskComplete : **RESPONSE Phase**
+    TaskComplete : Agent provides final answer
+    TaskComplete : combining all results
+    TaskComplete : --
+    TaskComplete : "Final result: 9.54243"
+}
+
+UserQuestion --> Thinking : Agent starts\nplanning
+Thinking --> ActionDecision : Decides what\naction to take
+ActionDecision --> ToolExecution : Use available tool
+ActionDecision --> TaskComplete : [No more tools needed]
+ToolExecution --> WaitingForResult : Execute tool
+WaitingForResult --> Observation : Tool returns result
+Observation --> ProgressEvaluation : Evaluate if task\nis complete
+ProgressEvaluation --> Thinking : [More work needed]\nContinue planning
+ProgressEvaluation --> TaskComplete : [Goal achieved]\nProvide final answer
+TaskComplete --> [*] : End
+
+note right of Thinking
+    **The ReAct Loop:**
+    1. **Think** about what needs to be done
+    2. **Act** by using available tools
+    3. **Observe** the results
+    4. **Repeat** until goal is achieved
+end note
+
+note bottom of UserQuestion
+    **Planning agents excel at:**
+    • Breaking complex tasks into steps
+    • Using multiple tools in sequence
+    • Maintaining context across actions
+    • Self-correcting when needed
+end note
+
+note top of TaskComplete
+    **Key Benefits:**
+    • Transparent reasoning process
+    • Step-by-step problem solving
+    • Ability to handle multi-step tasks
+    • Self-monitoring and correction
+end note
+
+@enduml

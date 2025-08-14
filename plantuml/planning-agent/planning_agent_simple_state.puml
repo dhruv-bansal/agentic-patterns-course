@@ -1,0 +1,76 @@
+@startuml Planning Agent - Simple ReAct Loop
+!theme aws-orange
+skinparam backgroundColor #FAFAFA
+skinparam state {
+    BackgroundColor #E8F4F8
+    BorderColor #2E86AB
+    FontName Arial
+    FontSize 12
+    FontStyle bold
+}
+
+title **Planning Agent: The ReAct Loop**\nThink -> Act -> Observe -> Repeat
+
+[*] --> Question
+
+state Question {
+    Question : **User Question**
+    Question : Complex multi-step task
+    Question : Example: "Do math: (1234+5678)x5, then log(result)"
+}
+
+state Think {
+    Think : **THINK**
+    Think : What should I do next?
+    Think : Which tool do I need?
+}
+
+state Act {
+    Act : **ACT**
+    Act : Use a tool to get information
+    Act : or perform an action
+}
+
+state Observe {
+    Observe : **OBSERVE**
+    Observe : Look at the tool's result
+    Observe : Decide what to do next
+}
+
+state Complete {
+    Complete : **COMPLETE**
+    Complete : Provide final answer
+    Complete : to the user
+}
+
+Question --> Think : Start planning
+Think --> Act : Choose action
+Act --> Observe : Get result
+Observe --> Think : Need more work?
+Observe --> Complete : Task finished
+Complete --> [*]
+
+note right of Think
+    **The Magic of Planning:**
+    The agent doesn't try to solve
+    everything at once. Instead, it:
+    
+    1. **Thinks** about the next step
+    2. **Acts** using available tools  
+    3. **Observes** what happened
+    4. **Repeats** until done
+    
+    This allows handling complex
+    tasks that require multiple
+    steps and tools!
+end note
+
+note bottom of Question
+    **Why Planning Matters:**
+    Some tasks are too complex for
+    a single response. Planning agents
+    can break them into manageable
+    pieces and execute step-by-step.
+end note
+
+@enduml
