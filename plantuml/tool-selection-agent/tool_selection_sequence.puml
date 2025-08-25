@@ -1,0 +1,22 @@
+@startuml
+!theme aws-orange
+title Tool Selection: Agent–LLM Interaction Sequence
+
+actor User
+participant Agent
+participant LLM
+participant ToolRegistry
+
+User -> Agent: Submit query
+Agent -> LLM: Analyze query intent
+LLM -> Agent: Return intent, entities, actions
+Agent -> ToolRegistry: List available tools
+ToolRegistry -> Agent: Return tool list
+Agent -> LLM: Request tool match for intent
+LLM -> Agent: Suggest best tool(s) + reasoning
+Agent -> LLM: Request clarification (if needed)
+LLM -> Agent: Provide clarification
+Agent -> ToolRegistry: Select tool and get details
+Agent -> User: Return selected tool and reasoning
+
+@enduml

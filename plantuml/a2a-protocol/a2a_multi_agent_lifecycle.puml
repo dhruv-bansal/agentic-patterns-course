@@ -1,0 +1,93 @@
+@startuml A2A_Protocol_Multi_Agent_System_Lifecycle
+
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 200
+
+title A2A Protocol: Complete Multi-Agent System Lifecycle Flow
+
+actor "User/Client" as User
+participant "Client Agent\n(A2A Client)" as ClientAgent
+participant "Central Agent\nRegistry" as Registry
+participant "Planner Agent\n(A2A Server)" as PlannerAgent
+participant "Data Analysis Agent\n(Specialized A2A Server)" as DataAgent
+participant "Content Generation Agent\n(Specialized A2A Server)" as ContentAgent
+
+== 1. Agent Discovery Phase ==
+
+User -> ClientAgent : Request: "Analyze data and create report"
+activate ClientAgent
+
+note over ClientAgent : Client needs to discover\navailable agents for task
+
+ClientAgent -> Registry : GET /.well-known/agent-registry.json
+activate Registry
+Registry --> ClientAgent : Agent Registry Index\n[List of available agent cards]
+deactivate Registry
+
+loop For each agent in registry
+    ClientAgent -> Registry : GET agent-card URLs
+    activate Registry
+    Registry --> ClientAgent : **Agent Cards**\n- Planner Agent Card\n- Data Analysis Agent Card\n- Content Generation Agent Card
+    deactivate Registry
+end
+
+note over ClientAgent : Parse Agent Cards:\n• Skills & Capabilities\n• Transport Protocols\n• Authentication Requirements\n• Input/Output Modes
+
+== 2. Task Planning & Agent Selection ==
+
+ClientAgent -> PlannerAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{"kind": "text", "text": "Plan task: analyze data and create report"}]\n  }\n}
+activate PlannerAgent
+
+note over PlannerAgent : **Planner Agent Logic:**\n1. Analyze task complexity\n2. Break down into subtasks\n3. Match subtasks to agent skills\n4. Create execution plan
+
+PlannerAgent -> PlannerAgent : **Agent Selection Decision Tree:**\n• Task: "analyze data" → Data Analysis Agent\n• Task: "create report" → Content Generation Agent\n• Coordination: Planner Agent
+
+PlannerAgent --> ClientAgent : **Task Response**\n{\n  "id": "task-123",\n  "status": {"state": "working"},\n  "plan": {\n    "subtasks": [\n      {"id": "subtask-1", "agent": "data-agent", "task": "analyze"},\n      {"id": "subtask-2", "agent": "content-agent", "task": "report"}\n    ]\n  }\n}
+
+== 3. Multi-Agent Task Execution ==
+
+note over PlannerAgent : **Execute Subtask 1: Data Analysis**
+
+PlannerAgent -> DataAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{\n      "kind": "text",\n      "text": "Analyze attached dataset for key insights"\n    }, {\n      "kind": "file",\n      "file": {"name": "data.csv", "bytes": "..."}\n    }]\n  },\n  "taskId": "subtask-1"\n}
+activate DataAgent
+
+DataAgent -> DataAgent : **Process Data:**\n• Load and validate dataset\n• Run statistical analysis\n• Generate insights\n• Create structured results
+
+DataAgent --> PlannerAgent : **Task Completed**\n{\n  "id": "subtask-1",\n  "status": {"state": "completed"},\n  "artifacts": [{\n    "artifactId": "analysis-results",\n    "parts": [{"kind": "data", "data": {"insights": [...], "charts": [...]}}]\n  }]\n}
+deactivate DataAgent
+
+note over PlannerAgent : **Execute Subtask 2: Content Generation**\n(Using results from Subtask 1)
+
+PlannerAgent -> ContentAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{\n      "kind": "text",\n      "text": "Generate comprehensive report from analysis"\n    }, {\n      "kind": "data",\n      "data": {"analysis_results": "from subtask-1"}\n    }]\n  },\n  "taskId": "subtask-2"\n}
+activate ContentAgent
+
+ContentAgent -> ContentAgent : **Generate Content:**\n• Process analysis results\n• Create narrative structure\n• Generate visualizations\n• Format final report
+
+ContentAgent --> PlannerAgent : **Task Completed**\n{\n  "id": "subtask-2",\n  "status": {"state": "completed"},\n  "artifacts": [{\n    "artifactId": "final-report",\n    "parts": [{\n      "kind": "file",\n      "file": {"name": "report.pdf", "uri": "https://..."}\n    }]\n  }]\n}
+deactivate ContentAgent
+
+== 4. Task Orchestration & Completion ==
+
+PlannerAgent -> PlannerAgent : **Aggregate Results:**\n• Combine all subtask artifacts\n• Validate completion criteria\n• Prepare final deliverables
+
+PlannerAgent --> ClientAgent : **Final Task Response**\n{\n  "id": "task-123",\n  "status": {"state": "completed"},\n  "artifacts": [{\n    "artifactId": "complete-analysis-report",\n    "name": "Data Analysis Report",\n    "parts": [\n      {"kind": "data", "data": {"insights": [...]}},\n      {"kind": "file", "file": {"name": "report.pdf", "uri": "..."}}\n    ]\n  }]\n}
+deactivate PlannerAgent
+
+ClientAgent --> User : **Deliver Results**\n• Analysis insights\n• Formatted report\n• Supporting visualizations
+deactivate ClientAgent
+
+== Key A2A Protocol Concepts Highlighted ==
+
+note over Registry : **Central Agent Registry**\n• Agent Card discovery\n• Capability matching\n• Service endpoint resolution\n• Authentication requirements
+
+note over PlannerAgent : **Agent Cards Usage**\n• Skill-based agent selection\n• Transport protocol negotiation\n• Input/Output mode compatibility\n• Authentication scheme handling
+
+note over DataAgent, ContentAgent : **Multi-Agent Coordination**\n• Task lifecycle management\n• Artifact exchange between agents\n• Context preservation across tasks\n• Specialized agent capabilities
+
+note over ClientAgent, PlannerAgent : **Task Lifecycle States**\n• submitted → working → completed\n• input-required (for multi-turn)\n• failed/canceled (error handling)\n• Context IDs for related tasks
+
+note over Registry, ContentAgent : **Communication Patterns**\n• JSON-RPC 2.0 over HTTP(S)\n• Streaming with Server-Sent Events\n• Push notifications for long tasks\n• File exchange (upload/download)\n• Structured data exchange
+
+@enduml

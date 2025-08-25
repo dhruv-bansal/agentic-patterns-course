@@ -1,0 +1,37 @@
+@startuml
+!theme aws-orange
+left to right direction
+title Agent-LLM-Tools Activity Flow (Left-to-Right)
+
+partition "User" {
+  start
+  :Submit request;
+}
+
+partition "Agent Runtime (Planning)" {
+  :Normalize request (parser or LLM);
+  :Load tool registry and policies;
+  :Retrieve context (history, memory, profile);
+  :Draft plan with LLM\n(intent, steps, candidate tools);
+  if (Any tool needed?) then (Yes)
+    :Generate ToolCall\n(name + validated args);
+  else (No)
+    :Assemble final answer\n(no tool);
+  endif
+}
+
+partition "Guards" {
+  :Policy and permission checks;
+}
+
+partition "Agent Runtime (Execution)" {
+  :Execute tool;
+  :Capture observation\n(result, metadata, cost);
+}
+
+partition "User" {
+  :Return result\n(cite observations, explain steps);
+  stop
+}
+
+@enduml

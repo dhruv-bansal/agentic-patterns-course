@@ -1,0 +1,60 @@
+@startuml
+!theme aws-orange
+title Agent–LLM–Tools Activity Flow
+
+partition "User" {
+  start
+  :Submit request;
+}
+
+partition "Agent Runtime" {
+  :Normalize request (parser or LLM);
+  :Load tool registry and policies;
+  :Retrieve context (history, memory, profile);
+  :Draft plan with LLM\n(intent, steps, candidate tools);
+  if (Any tool needed?) then (Yes)
+    :Generate ToolCall #1\n(name + validated args);
+  else (No)
+    :Assemble final answer\n(no tool);
+    :Return result to user;
+    stop
+  endif
+}
+
+partition "Guards" {
+  :Policy and permission checks;
+  if (OK to call tool?) then (Yes)
+    :Proceed to tool execution;
+  else (No)
+    :Replan with LLM\n(next ToolCall);
+    :Return to planning;
+  endif
+}
+
+partition "Agent Runtime" {
+  :Execute tool;
+  :Capture observation\n(result, metadata, cost);
+  if (Goal reached?) then (Yes)
+    :Assemble final answer\n(grounded in observations);
+    :Return result to user;
+    stop
+  else (No)
+    :Self-critique and refine plan\n(LLM reflection);
+    if (Error or low confidence?) then (Yes)
+      :Retry or fallback\n(adjust args, alternate tool, or no-tool);
+    endif
+    :Replan with LLM\n(next ToolCall);
+    :Return to planning;
+  endif
+}
+
+partition "Tools & Data" {
+  :Tool A / Tool B execute;
+  :KB / RAG retrieval as needed;
+}
+
+partition "User" {
+  :Return result\n(cite observations, explain steps);
+  stop
+}
+@enduml

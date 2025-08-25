@@ -1,0 +1,86 @@
+@startuml A2A_Agent_Card_and_Registry_Architecture
+
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+
+title A2A Protocol: Agent Card Architecture & Registry System
+
+package "Central Agent Registry" {
+  database "Registry Database" as RegistryDB
+  component "Discovery API" as DiscoveryAPI
+  RegistryDB -down-> DiscoveryAPI
+}
+
+package "Agent Card Structure" {
+  component "Core Metadata" as CoreMeta
+  component "Service Endpoints" as Endpoints  
+  component "Agent Skills" as Skills
+  component "Capabilities" as Capabilities
+  component "Security" as Security
+  
+  CoreMeta -down-> Endpoints
+  Endpoints -down-> Skills
+  Skills -down-> Capabilities
+  Capabilities -down-> Security
+}
+
+package "Specialized Agents" {
+  component "Data Analysis Agent" as DataAgent
+  component "Content Generation Agent" as ContentAgent  
+  component "Planner Agent" as PlannerAgent
+}
+
+package "Transport Protocols" {
+  component "JSON-RPC 2.0" as JSONRPC
+  component "gRPC" as GRPC
+  component "HTTP+JSON/REST" as REST
+}
+
+package "Client Process" {
+  component "Discovery Phase" as Discovery
+  component "Agent Selection" as Selection
+  component "Service Resolution" as Resolution
+  
+  Discovery -down-> Selection
+  Selection -down-> Resolution
+}
+
+' Relationships
+DiscoveryAPI --> CoreMeta : "Serves Agent Cards"
+CoreMeta --> DataAgent : "Describes"
+CoreMeta --> ContentAgent : "Describes" 
+CoreMeta --> PlannerAgent : "Describes"
+
+DataAgent --> JSONRPC : "Supports"
+ContentAgent --> GRPC : "Supports"
+PlannerAgent --> REST : "Supports"
+
+Discovery --> DiscoveryAPI : "Queries"
+Selection --> CoreMeta : "Parses"
+Resolution --> DataAgent : "Connects"
+
+note top of RegistryDB
+  Central Agent Registry:
+  - Agent capability indexing
+  - Service endpoint resolution
+  - Agent Card distribution
+end note
+
+note right of CoreMeta
+  Agent Card Contents:
+  - Skills with tags & examples
+  - Transport declarations  
+  - Authentication requirements
+  - Input/Output modes
+end note
+
+note bottom of Discovery
+  Agent Selection Process:
+  1. Query registry for available agents
+  2. Parse Agent Cards for capabilities
+  3. Match task requirements to skills
+  4. Select transport & authenticate
+  5. Invoke A2A methods
+end note
+
+@enduml

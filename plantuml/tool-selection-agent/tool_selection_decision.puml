@@ -1,0 +1,21 @@
+@startuml
+!theme aws-orange
+title Tool Selection Decision Flow
+
+start
+:Receive user query;
+:Analyze query intent with LLM;
+:Extract entities and required actions;
+:List available tools and their capabilities;
+if (Query needs data retrieval?) then (Yes)
+  :Select Database Tool;
+elseif (Query needs external service?) then (Yes)
+  :Select API Tool;
+elseif (Query needs file operation?) then (Yes)
+  :Select File System Tool;
+else (No match)
+  :Return error or ask for clarification;
+endif
+:Document reasoning for tool selection;
+stop
+@enduml
