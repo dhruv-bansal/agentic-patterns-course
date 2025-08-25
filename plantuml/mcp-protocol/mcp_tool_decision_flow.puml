@@ -1,0 +1,67 @@
+@startuml MCP_Tool_Selection_Decision_Flow
+
+!theme aws-orange
+
+
+title MCP Protocol: Tool Selection and Decision Making Flow
+
+start
+:User submits task request;
+note right
+  Example: "Research Python async patterns 
+  and create a summary document"
+end note
+
+:Parse user request;
+:Identify required capabilities;
+
+if (Task requires external tools?) then (yes)
+  :Initialize MCP connection;
+  :Discover available tools;
+  
+  :Send tools/list request to MCP server;
+  :Receive tool schemas and descriptions;
+  :Parse tool capabilities;
+  
+  :Build tool capability matrix;
+  note right
+    Tool Analysis:
+    - search_web: ["query"] -> web results
+    - get_url: ["url"] -> content
+    - read_file: ["path"] -> file content
+    - write_file: ["path", "content"] -> success
+  end note
+  
+  :Break down task into atomic operations;
+  
+  :For each operation, extract required capabilities;
+  :Filter tools by input schema;
+  :Check parameter compatibility;
+  :Validate output format;
+  :Score tools by capability match;
+  :Select highest scoring tool;
+  
+  :Create execution dependency graph;
+  note right
+    Execution Order:
+    1. search_web (independent)
+    2. get_url (uses search results)
+    3. write_file (uses retrieved content)
+    4. read_file (verification step)
+  end note
+  
+  :Execute tools in planned sequence;
+  :Validate each tool response;
+  :Aggregate all tool results;
+  :Validate task completion;
+  :Prepare user response;
+  
+else (no)
+  :Process task using internal capabilities;
+  :Generate response without external tools;
+endif
+
+:Return results to user;
+stop
+
+@enduml

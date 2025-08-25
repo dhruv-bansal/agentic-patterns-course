@@ -1,6 +1,6 @@
 @startuml A2A_Protocol_Multi_Agent_System_Lifecycle
 
-!theme cerulean-outline
+!theme aws-orange
 skinparam backgroundColor #FAFAFA
 skinparam sequenceMessageAlign center
 skinparam maxMessageSize 200
@@ -40,15 +40,37 @@ note over ClientAgent : Parse Agent Cards:\n• Skills & Capabilities\n• Trans
 ClientAgent -> PlannerAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{"kind": "text", "text": "Plan task: analyze data and create report"}]\n  }\n}
 activate PlannerAgent
 
-note over PlannerAgent : **Planner Agent Logic:**\n1. Analyze task complexity\n2. Break down into subtasks\n3. Match subtasks to agent skills\n4. Create execution plan
+note over PlannerAgent : **Planner Agent Logic:**\n1. Analyze task complexity\n2. Break down into subtasks\n3. Discover available agents\n4. Match subtasks to agent skills\n5. Create execution plan
 
-PlannerAgent -> PlannerAgent : **Agent Selection Decision Tree:**\n• Task: "analyze data" → Data Analysis Agent\n• Task: "create report" → Content Generation Agent\n• Coordination: Planner Agent
+== 2.1. Planner Agent Discovery Phase ==
+
+PlannerAgent -> Registry : GET /.well-known/agent-registry.json
+activate Registry
+Registry --> PlannerAgent : Agent Registry Index\n[Available specialized agents]
+deactivate Registry
+
+loop For each specialized agent
+    PlannerAgent -> Registry : GET specialized agent cards
+    activate Registry
+    Registry --> PlannerAgent : **Specialized Agent Cards**\n- Data Analysis Agent Card\n- Content Generation Agent Card\n- Strategy Planning Agent Card\n- etc.
+    deactivate Registry
+end
+
+note over PlannerAgent : **Parse Specialized Agent Cards:**\n• Extract skills and capabilities\n• Note input/output requirements\n• Check transport compatibility\n• Store agent endpoint URLs
+
+== 2.2. Task Planning & Agent Matching ==
+
+PlannerAgent -> PlannerAgent : **Agent Selection Decision Tree:**\n• Task: "analyze data" → Data Analysis Agent\n  (skills: ["analytics", "statistics", "csv"])\n• Task: "create report" → Content Generation Agent\n  (skills: ["writing", "document-generation"])\n• Coordination: Planner Agent
 
 PlannerAgent --> ClientAgent : **Task Response**\n{\n  "id": "task-123",\n  "status": {"state": "working"},\n  "plan": {\n    "subtasks": [\n      {"id": "subtask-1", "agent": "data-agent", "task": "analyze"},\n      {"id": "subtask-2", "agent": "content-agent", "task": "report"}\n    ]\n  }\n}
 
+note over ClientAgent : **Client receives execution plan**\nand delegates subtask execution\nto the Planner Agent
+
+ClientAgent -> PlannerAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{"kind": "text", "text": "Execute the planned subtasks"}]\n  },\n  "taskId": "task-123"\n}
+
 == 3. Multi-Agent Task Execution ==
 
-note over PlannerAgent : **Execute Subtask 1: Data Analysis**
+note over PlannerAgent : **Execute Subtask 1: Data Analysis**\nPlanner coordinates with specialized agents
 
 PlannerAgent -> DataAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{\n      "kind": "text",\n      "text": "Analyze attached dataset for key insights"\n    }, {\n      "kind": "file",\n      "file": {"name": "data.csv", "bytes": "..."}\n    }]\n  },\n  "taskId": "subtask-1"\n}
 activate DataAgent
@@ -82,7 +104,7 @@ deactivate ClientAgent
 
 note over Registry : **Central Agent Registry**\n• Agent Card discovery\n• Capability matching\n• Service endpoint resolution\n• Authentication requirements
 
-note over PlannerAgent : **Agent Cards Usage**\n• Skill-based agent selection\n• Transport protocol negotiation\n• Input/Output mode compatibility\n• Authentication scheme handling
+note over PlannerAgent : **Agent Cards Usage**\n• Skill-based agent selection\n• Transport protocol negotiation\n• Input/Output mode compatibility\n• Authentication scheme handling\n• Dynamic agent discovery via registry\n• Capability caching for performance
 
 note over DataAgent, ContentAgent : **Multi-Agent Coordination**\n• Task lifecycle management\n• Artifact exchange between agents\n• Context preservation across tasks\n• Specialized agent capabilities
 

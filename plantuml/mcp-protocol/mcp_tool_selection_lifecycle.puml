@@ -1,0 +1,118 @@
+@startuml MCP_Tool_Selection_Lifecycle
+
+!theme aws-orange
+skinparam backgroundColor #FAFAFA
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 250
+
+title MCP Protocol: Complete Tool Selection and Execution Lifecycle
+
+actor "User" as User
+participant "AI Agent\n(MCP Client)" as Agent
+participant "MCP Server\n(Tool Provider)" as MCPServer
+participant "File System Tool\n(read_file, write_file)" as FileSystemTool
+participant "Web Search Tool\n(search_web, get_url)" as WebSearchTool
+
+== 1. MCP Server Discovery & Initialization ==
+
+User -> Agent : Request: "Research Python async patterns and create a summary document"
+activate Agent
+
+note over Agent : Agent needs to identify\nrequired capabilities:\n• Web search for research\n• File operations for document creation
+
+Agent -> MCPServer : **MCP Initialize**\n{\n  "jsonrpc": "2.0",\n  "method": "initialize",\n  "params": {\n    "protocolVersion": "2024-11-05",\n    "capabilities": {\n      "tools": {"listChanged": true}\n    },\n    "clientInfo": {"name": "Research Agent", "version": "1.0"}\n  }\n}
+activate MCPServer
+
+MCPServer --> Agent : **Initialize Response**\n{\n  "result": {\n    "protocolVersion": "2024-11-05",\n    "capabilities": {\n      "tools": {"listChanged": true},\n      "resources": {},\n      "prompts": {}\n    },\n    "serverInfo": {"name": "Toolkit Server", "version": "2.1"}\n  }\n}
+
+== 2. Tool Discovery Phase ==
+
+Agent -> MCPServer : **List Available Tools**\n{\n  "jsonrpc": "2.0",\n  "method": "tools/list",\n  "params": {}\n}
+
+MCPServer --> Agent : **Available Tools Response**\n{\n  "result": {\n    "tools": [\n      {\n        "name": "read_file",\n        "description": "Read contents of a file",\n        "inputSchema": {\n          "type": "object",\n          "properties": {"path": {"type": "string"}},\n          "required": ["path"]\n        }\n      },\n      {\n        "name": "write_file", \n        "description": "Write content to a file",\n        "inputSchema": {\n          "type": "object",\n          "properties": {\n            "path": {"type": "string"},\n            "content": {"type": "string"}\n          },\n          "required": ["path", "content"]\n        }\n      },\n      {\n        "name": "search_web",\n        "description": "Search the web for information",\n        "inputSchema": {\n          "type": "object", \n          "properties": {"query": {"type": "string"}},\n          "required": ["query"]\n        }\n      },\n      {\n        "name": "get_url",\n        "description": "Fetch content from a specific URL",\n        "inputSchema": {\n          "type": "object",\n          "properties": {"url": {"type": "string"}},\n          "required": ["url"]\n        }\n      }\n    ]\n  }\n}
+
+note over Agent : **Tool Selection Logic:**\n1. Parse available tools and schemas\n2. Match task requirements to tool capabilities\n3. Plan execution sequence:\n   • search_web: Research async patterns\n   • get_url: Get detailed content from sources\n   • write_file: Create summary document
+
+== 3. Tool Execution Phase - Web Research ==
+
+note over Agent : **Step 1: Research Python async patterns**
+
+Agent -> MCPServer : **Execute Web Search Tool**\n{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": {\n    "name": "search_web",\n    "arguments": {\n      "query": "Python async await patterns best practices 2024"\n    }\n  }\n}
+
+MCPServer -> WebSearchTool : Execute search with query
+activate WebSearchTool
+
+WebSearchTool -> WebSearchTool : **Search Process:**\n• Query web search engine\n• Filter relevant results\n• Extract key information\n• Format response data
+
+WebSearchTool --> MCPServer : Search results with URLs
+deactivate WebSearchTool
+
+MCPServer --> Agent : **Tool Call Response**\n{\n  "result": {\n    "content": [\n      {\n        "type": "text",\n        "text": "Found 5 relevant articles:\\n1. Python Async Best Practices - https://realpython.com/async-io/\\n2. Advanced Asyncio Patterns - https://docs.python.org/3/library/asyncio.html\\n3. Performance with Async - https://medium.com/async-patterns\\n..."\n      }\n    ],\n    "isError": false\n  }\n}
+
+note over Agent : **Step 2: Get detailed content from top source**
+
+Agent -> MCPServer : **Execute URL Fetch Tool**\n{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": {\n    "name": "get_url",\n    "arguments": {\n      "url": "https://realpython.com/async-io/"\n    }\n  }\n}
+
+MCPServer -> WebSearchTool : Fetch URL content
+activate WebSearchTool
+
+WebSearchTool -> WebSearchTool : **URL Fetch Process:**\n• HTTP GET request to URL\n• Parse HTML content\n• Extract main text content\n• Clean and format text
+
+WebSearchTool --> MCPServer : Extracted article content
+deactivate WebSearchTool
+
+MCPServer --> Agent : **Tool Call Response**\n{\n  "result": {\n    "content": [\n      {\n        "type": "text",\n        "text": "# Python Async/Await Patterns\\n\\nAsync programming in Python...\\n\\n## Key Patterns:\\n1. Basic async/await usage\\n2. Task creation and management\\n3. Error handling in async code\\n..."\n      }\n    ],\n    "isError": false\n  }\n}
+
+== 4. Tool Execution Phase - Document Creation ==
+
+note over Agent : **Step 3: Create summary document**\n**Agent processes research data and**\n**generates comprehensive summary**
+
+Agent -> Agent : **Content Generation:**\n• Analyze research findings\n• Structure key insights\n• Create comprehensive summary\n• Format as markdown document
+
+Agent -> MCPServer : **Execute File Write Tool**\n{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": {\n    "name": "write_file",\n    "arguments": {\n      "path": "./python_async_patterns_summary.md",\n      "content": "# Python Async Patterns Summary\\n\\n## Overview\\nThis document summarizes best practices for Python async programming...\\n\\n## Key Patterns\\n1. **Basic async/await**\\n   - Use async def for coroutines\\n   - await for async operations\\n\\n2. **Task Management**\\n   - asyncio.create_task()\\n   - asyncio.gather()\\n..."\n    }\n  }\n}
+
+MCPServer -> FileSystemTool : Write file to disk
+activate FileSystemTool
+
+FileSystemTool -> FileSystemTool : **File Write Process:**\n• Validate file path\n• Create directories if needed\n• Write content to file\n• Set appropriate permissions
+
+FileSystemTool --> MCPServer : File write confirmation
+deactivate FileSystemTool
+
+MCPServer --> Agent : **Tool Call Response**\n{\n  "result": {\n    "content": [\n      {\n        "type": "text",\n        "text": "Successfully wrote 2,847 bytes to ./python_async_patterns_summary.md"\n      }\n    ],\n    "isError": false\n  }\n}
+
+== 5. Verification & Completion ==
+
+note over Agent : **Step 4: Verify document creation**
+
+Agent -> MCPServer : **Execute File Read Tool (Verification)**\n{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": {\n    "name": "read_file",\n    "arguments": {\n      "path": "./python_async_patterns_summary.md"\n    }\n  }\n}
+
+MCPServer -> FileSystemTool : Read file from disk
+activate FileSystemTool
+
+FileSystemTool -> FileSystemTool : **File Read Process:**\n• Check file exists\n• Read file contents\n• Return content as string
+
+FileSystemTool --> MCPServer : File contents
+deactivate FileSystemTool
+
+MCPServer --> Agent : **Tool Call Response**\n{\n  "result": {\n    "content": [\n      {\n        "type": "text",\n        "text": "# Python Async Patterns Summary\\n\\n## Overview\\nThis document summarizes best practices..."\n      }\n    ],\n    "isError": false\n  }\n}
+
+Agent -> MCPServer : **Close MCP Session**\n{\n  "jsonrpc": "2.0",\n  "method": "notifications/cancelled",\n  "params": {}\n}
+deactivate MCPServer
+
+Agent --> User : **Task Completed**\n✅ Research completed on Python async patterns\n✅ Summary document created: python_async_patterns_summary.md\n✅ Document contains 2,847 bytes of structured content\n\n**Tools Used:**\n• search_web: Found 5 relevant sources\n• get_url: Retrieved detailed content\n• write_file: Created summary document\n• read_file: Verified document creation
+deactivate Agent
+
+== Key MCP Protocol Concepts Highlighted ==
+
+note over MCPServer : **MCP Server Capabilities**\n• Tool registration and discovery\n• JSON-RPC 2.0 communication\n• Schema-based input validation\n• Tool execution and response handling\n• Session management
+
+note over Agent : **Agent Tool Selection Logic**\n• Capability-based tool discovery\n• Task decomposition into tool operations\n• Sequential tool execution planning\n• Error handling and validation\n• Result aggregation and presentation
+
+note over FileSystemTool, WebSearchTool : **Tool Implementation Patterns**\n• Input schema validation\n• Atomic operation execution\n• Error reporting and handling\n• Resource management\n• State isolation between calls
+
+note over Agent, MCPServer : **MCP Communication Flow**\n• Initialize protocol connection\n• Discover available tools/resources\n• Execute tools with type-safe parameters\n• Handle responses and errors\n• Manage session lifecycle
+
+note over User, FileSystemTool : **End-to-End Tool Orchestration**\n• Multi-tool workflow coordination\n• Data flow between tool executions\n• Verification and validation steps\n• User feedback and reporting
+
+@enduml
