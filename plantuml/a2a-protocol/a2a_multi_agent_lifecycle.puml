@@ -13,13 +13,31 @@ participant "Central Agent\nRegistry" as Registry
 participant "Planner Agent\n(A2A Server)" as PlannerAgent
 participant "Data Analysis Agent\n(Specialized A2A Server)" as DataAgent
 participant "Content Generation Agent\n(Specialized A2A Server)" as ContentAgent
+participant "LLM Service\n(Google Gemini/OpenAI)" as LLM
+
+== 0. Agent Registration Phase ==
+
+note over Registry : **Central Registry Bootstrap**\nRegistry service starts and waits\nfor agent registrations
+
+PlannerAgent -> Registry : **POST /register**\n{\n  "agentCard": {\n    "id": "planner-agent-v1",\n    "name": "Task Planning Agent",\n    "skills": ["task-planning", "coordination", "strategy"],\n    "transport": [{"protocol": "http", "endpoint": "https://planner.example.com"}],\n    "authentication": {"type": "bearer"},\n    "inputModes": ["text", "structured-data"],\n    "outputModes": ["text", "task-plan", "json"]\n  }\n}
+activate Registry
+Registry --> PlannerAgent : **Registration Confirmed**\n{"status": "registered", "cardUrl": "/.well-known/planner-agent.json"}
+
+DataAgent -> Registry : **POST /register**\n{\n  "agentCard": {\n    "id": "data-analysis-agent-v1",\n    "name": "Data Analysis Specialist",\n    "skills": ["analytics", "statistics", "csv", "visualization"],\n    "transport": [{"protocol": "http", "endpoint": "https://data.example.com"}],\n    "authentication": {"type": "api-key"},\n    "inputModes": ["file", "csv", "json"],\n    "outputModes": ["data", "charts", "insights"]\n  }\n}
+Registry --> DataAgent : **Registration Confirmed**\n{"status": "registered", "cardUrl": "/.well-known/data-agent.json"}
+
+ContentAgent -> Registry : **POST /register**\n{\n  "agentCard": {\n    "id": "content-generation-agent-v1",\n    "name": "Content Generation Specialist", \n    "skills": ["writing", "document-generation", "formatting"],\n    "transport": [{"protocol": "http", "endpoint": "https://content.example.com"}],\n    "authentication": {"type": "oauth2"},\n    "inputModes": ["text", "data", "templates"],\n    "outputModes": ["document", "pdf", "markdown"]\n  }\n}
+Registry --> ContentAgent : **Registration Confirmed**\n{"status": "registered", "cardUrl": "/.well-known/content-agent.json"}
+deactivate Registry
+
+note over Registry : **Registry Index Updated**\nAll agent cards now available\nfor discovery by clients
 
 == 1. Agent Discovery Phase ==
 
 User -> ClientAgent : Request: "Analyze data and create report"
 activate ClientAgent
 
-note over ClientAgent : Client needs to discover\navailable agents for task
+note over ClientAgent : **Client Agent Logic:**\n• Received user request\n• First: Discover all available agents\n• Then: Use LLM to select right agent(s)
 
 ClientAgent -> Registry : GET /.well-known/agent-registry.json
 activate Registry
@@ -35,34 +53,49 @@ end
 
 note over ClientAgent : Parse Agent Cards:\n• Skills & Capabilities\n• Transport Protocols\n• Authentication Requirements\n• Input/Output Modes
 
+ClientAgent -> LLM : **LLM Call: Agent Selection**\n{\n  "prompt": "Given this user request and available agents, which agent should handle this task?",\n  "user_request": "Analyze data and create report",\n  "available_agents": [\n    {"name": "Planner Agent", "skills": ["task-planning", "coordination", "strategy"]},\n    {"name": "Data Analysis Agent", "skills": ["analytics", "statistics", "csv"]},\n    {"name": "Content Generation Agent", "skills": ["writing", "document-generation"]}\n  ]\n}
+activate LLM
+LLM --> ClientAgent : **LLM Response**\n{\n  "analysis": {\n    "task_type": "complex_workflow",\n    "required_skills": ["task-planning", "data-analysis", "content-generation"],\n    "selected_agent": "Planner Agent",\n    "reasoning": "Task requires coordination of multiple specialized agents"\n  },\n  "recommendation": "Use Planner Agent to coordinate Data Analysis + Content Generation"\n}
+deactivate LLM
+
+note over ClientAgent : **Client Agent Decision:**\n✅ Discovered all available agents first\n✅ LLM analyzed request + available agents\n• Selected Planner Agent for coordination\n• Will delegate complex workflow to planner
+
 == 2. Task Planning & Agent Selection ==
 
 ClientAgent -> PlannerAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{"kind": "text", "text": "Plan task: analyze data and create report"}]\n  }\n}
 activate PlannerAgent
 
-note over PlannerAgent : **Planner Agent Logic:**\n1. Analyze task complexity\n2. Break down into subtasks\n3. Discover available agents\n4. Match subtasks to agent skills\n5. Create execution plan
+== 2.1. Task Analysis & Agent Discovery ==
 
-== 2.1. Planner Agent Discovery Phase ==
+PlannerAgent -> LLM : **LLM Call: Task Analysis**\n{\n  "prompt": "Analyze this user request and break it into subtasks: 'Plan task: analyze data and create report'",\n  "context": "I need to create a detailed execution plan with subtasks"\n}
+activate LLM
+LLM --> PlannerAgent : **LLM Response**\n{\n  "analysis": "Task requires: 1) Data analysis (analytics, statistics), 2) Report generation (writing, document-generation)",\n  "subtasks": [\n    {"name": "analyze_data", "description": "Statistical analysis and insights", "required_skills": ["analytics", "statistics", "csv"]},\n    {"name": "generate_report", "description": "Create comprehensive report", "required_skills": ["writing", "document-generation"]}\n  ],\n  "dependencies": [{"from": "analyze_data", "to": "generate_report"}]\n}
+deactivate LLM
 
 PlannerAgent -> Registry : GET /.well-known/agent-registry.json
 activate Registry
 Registry --> PlannerAgent : Agent Registry Index\n[Available specialized agents]
 deactivate Registry
 
-loop For each specialized agent
-    PlannerAgent -> Registry : GET specialized agent cards
+loop For each agent in registry
+    PlannerAgent -> Registry : GET agent card details
     activate Registry
-    Registry --> PlannerAgent : **Specialized Agent Cards**\n- Data Analysis Agent Card\n- Content Generation Agent Card\n- Strategy Planning Agent Card\n- etc.
+    Registry --> PlannerAgent : **Agent Cards**\n- Data Analysis Agent Card\n- Content Generation Agent Card
     deactivate Registry
 end
 
-note over PlannerAgent : **Parse Specialized Agent Cards:**\n• Extract skills and capabilities\n• Note input/output requirements\n• Check transport compatibility\n• Store agent endpoint URLs
+== 2.2. Agent-to-Subtask Matching ==
 
-== 2.2. Task Planning & Agent Matching ==
+PlannerAgent -> LLM : **LLM Call: Agent-to-Subtask Matching**\n{\n  "prompt": "Match these subtasks to the most suitable available agents:",\n  "subtasks": [\n    {"name": "analyze_data", "required_skills": ["analytics", "statistics", "csv"]},\n    {"name": "generate_report", "required_skills": ["writing", "document-generation"]}\n  ],\n  "available_agents": [\n    {"name": "Data Analysis Agent", "skills": ["analytics", "statistics", "csv", "visualization"]},\n    {"name": "Content Generation Agent", "skills": ["writing", "document-generation", "formatting"]}\n  ]\n}
+activate LLM
+LLM --> PlannerAgent : **LLM Response**\n{\n  "agent_matching": {\n    "analyze_data": {"agent": "Data Analysis Agent", "confidence": 0.95, "reasoning": "Perfect skill match for analytics and statistics"},\n    "generate_report": {"agent": "Content Generation Agent", "confidence": 0.92, "reasoning": "Ideal for writing and document generation"}\n  },\n  "execution_plan": {\n    "sequence": ["analyze_data", "generate_report"],\n    "parallel_possible": false\n  }\n}
+deactivate LLM
 
-PlannerAgent -> PlannerAgent : **Agent Selection Decision Tree:**\n• Task: "analyze data" → Data Analysis Agent\n  (skills: ["analytics", "statistics", "csv"])\n• Task: "create report" → Content Generation Agent\n  (skills: ["writing", "document-generation"])\n• Coordination: Planner Agent
+== 2.3. Execution Plan Creation ==
 
-PlannerAgent --> ClientAgent : **Task Response**\n{\n  "id": "task-123",\n  "status": {"state": "working"},\n  "plan": {\n    "subtasks": [\n      {"id": "subtask-1", "agent": "data-agent", "task": "analyze"},\n      {"id": "subtask-2", "agent": "content-agent", "task": "report"}\n    ]\n  }\n}
+PlannerAgent -> PlannerAgent : **Create Final Execution Plan:**\n• Subtask 1: analyze_data → Data Analysis Agent\n• Subtask 2: generate_report → Content Generation Agent\n• Sequential execution (data analysis first)\n• ✅ LLM-validated agent matching
+
+PlannerAgent --> ClientAgent : **Task Response**\n{\n  "id": "task-123",\n  "status": {"state": "working"},\n  "plan": {\n    "subtasks": [\n      {"id": "subtask-1", "agent": "Data Analysis Agent", "task": "analyze_data"},\n      {"id": "subtask-2", "agent": "Content Generation Agent", "task": "generate_report"}\n    ],\n    "execution_order": "sequential"\n  }\n}
 
 note over ClientAgent : **Client receives execution plan**\nand delegates subtask execution\nto the Planner Agent
 
@@ -75,7 +108,17 @@ note over PlannerAgent : **Execute Subtask 1: Data Analysis**\nPlanner coordinat
 PlannerAgent -> DataAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{\n      "kind": "text",\n      "text": "Analyze attached dataset for key insights"\n    }, {\n      "kind": "file",\n      "file": {"name": "data.csv", "bytes": "..."}\n    }]\n  },\n  "taskId": "subtask-1"\n}
 activate DataAgent
 
-DataAgent -> DataAgent : **Process Data:**\n• Load and validate dataset\n• Run statistical analysis\n• Generate insights\n• Create structured results
+DataAgent -> LLM : **LLM Call: Data Analysis Strategy**\n{\n  "prompt": "Analyze this dataset request and determine analysis approach",\n  "request": "Analyze attached dataset for key insights",\n  "file_info": {"name": "data.csv", "type": "csv"}\n}
+activate LLM
+LLM --> DataAgent : **LLM Response**\n{\n  "analysis_strategy": {\n    "steps": ["load_data", "validate_structure", "statistical_analysis", "pattern_detection"],\n    "metrics": ["mean", "median", "correlation", "trends"],\n    "visualizations": ["histogram", "scatter_plot", "time_series"]\n  }\n}
+deactivate LLM
+
+DataAgent -> DataAgent : **Process Data:**\n• Load and validate dataset\n• Run statistical analysis (LLM-guided)\n• Generate insights\n• Create structured results
+
+DataAgent -> LLM : **LLM Call: Insight Generation**\n{\n  "prompt": "Generate insights from this statistical analysis",\n  "data": {"statistics": {...}, "patterns": {...}, "trends": {...}}\n}
+activate LLM
+LLM --> DataAgent : **LLM Response**\n{\n  "insights": [\n    "Strong correlation between variables X and Y (r=0.85)",\n    "Seasonal trend detected with 23% variance",\n    "Outliers identified in 3.2% of dataset"\n  ],\n  "recommendations": ["Focus on X-Y relationship", "Account for seasonality"]\n}
+deactivate LLM
 
 DataAgent --> PlannerAgent : **Task Completed**\n{\n  "id": "subtask-1",\n  "status": {"state": "completed"},\n  "artifacts": [{\n    "artifactId": "analysis-results",\n    "parts": [{"kind": "data", "data": {"insights": [...], "charts": [...]}}]\n  }]\n}
 deactivate DataAgent
@@ -85,14 +128,29 @@ note over PlannerAgent : **Execute Subtask 2: Content Generation**\n(Using resul
 PlannerAgent -> ContentAgent : **message/send**\n{\n  "message": {\n    "role": "user",\n    "parts": [{\n      "kind": "text",\n      "text": "Generate comprehensive report from analysis"\n    }, {\n      "kind": "data",\n      "data": {"analysis_results": "from subtask-1"}\n    }]\n  },\n  "taskId": "subtask-2"\n}
 activate ContentAgent
 
-ContentAgent -> ContentAgent : **Generate Content:**\n• Process analysis results\n• Create narrative structure\n• Generate visualizations\n• Format final report
+ContentAgent -> LLM : **LLM Call: Content Strategy**\n{\n  "prompt": "Create a comprehensive report structure from this analysis data",\n  "analysis_results": {"insights": [...], "charts": [...], "recommendations": [...]},\n  "requirements": "comprehensive report format"\n}
+activate LLM
+LLM --> ContentAgent : **LLM Response**\n{\n  "report_structure": {\n    "sections": ["Executive Summary", "Data Overview", "Key Findings", "Visualizations", "Recommendations"],\n    "tone": "professional",\n    "format": "business_report"\n  }\n}
+deactivate LLM
+
+ContentAgent -> LLM : **LLM Call: Content Generation**\n{\n  "prompt": "Generate report content for each section",\n  "structure": {...},\n  "data": {"insights": [...], "recommendations": [...]}\n}
+activate LLM
+LLM --> ContentAgent : **LLM Response**\n{\n  "content": {\n    "executive_summary": "...",\n    "data_overview": "...",\n    "key_findings": "...",\n    "recommendations": "..."\n  }\n}
+deactivate LLM
+
+ContentAgent -> ContentAgent : **Generate Content:**\n• Process analysis results\n• Create narrative structure (LLM-generated)\n• Generate visualizations\n• Format final report
 
 ContentAgent --> PlannerAgent : **Task Completed**\n{\n  "id": "subtask-2",\n  "status": {"state": "completed"},\n  "artifacts": [{\n    "artifactId": "final-report",\n    "parts": [{\n      "kind": "file",\n      "file": {"name": "report.pdf", "uri": "https://..."}\n    }]\n  }]\n}
 deactivate ContentAgent
 
 == 4. Task Orchestration & Completion ==
 
-PlannerAgent -> PlannerAgent : **Aggregate Results:**\n• Combine all subtask artifacts\n• Validate completion criteria\n• Prepare final deliverables
+PlannerAgent -> LLM : **LLM Call: Result Validation**\n{\n  "prompt": "Validate if these combined results fulfill the original user request",\n  "original_request": "Analyze data and create report",\n  "subtask_results": [\n    {"task": "data_analysis", "artifacts": [...]},\n    {"task": "report_generation", "artifacts": [...]}\n  ]\n}
+activate LLM
+LLM --> PlannerAgent : **LLM Response**\n{\n  "validation": {\n    "completeness": "100%",\n    "quality_score": 0.94,\n    "missing_elements": [],\n    "recommendation": "Results fully satisfy user request"\n  }\n}
+deactivate LLM
+
+PlannerAgent -> PlannerAgent : **Aggregate Results:**\n• Combine all subtask artifacts\n• ✅ LLM validated completion criteria\n• Prepare final deliverables
 
 PlannerAgent --> ClientAgent : **Final Task Response**\n{\n  "id": "task-123",\n  "status": {"state": "completed"},\n  "artifacts": [{\n    "artifactId": "complete-analysis-report",\n    "name": "Data Analysis Report",\n    "parts": [\n      {"kind": "data", "data": {"insights": [...]}},\n      {"kind": "file", "file": {"name": "report.pdf", "uri": "..."}}\n    ]\n  }]\n}
 deactivate PlannerAgent
@@ -102,11 +160,13 @@ deactivate ClientAgent
 
 == Key A2A Protocol Concepts Highlighted ==
 
-note over Registry : **Central Agent Registry**\n• Agent Card discovery\n• Capability matching\n• Service endpoint resolution\n• Authentication requirements
+note over Registry : **Central Agent Registry**\n• ✅ Agent self-registration on startup\n• Agent Card discovery\n• Capability matching\n• Service endpoint resolution\n• Authentication requirements\n• Dynamic registry updates
 
 note over PlannerAgent : **Agent Cards Usage**\n• Skill-based agent selection\n• Transport protocol negotiation\n• Input/Output mode compatibility\n• Authentication scheme handling\n• Dynamic agent discovery via registry\n• Capability caching for performance
 
-note over DataAgent, ContentAgent : **Multi-Agent Coordination**\n• Task lifecycle management\n• Artifact exchange between agents\n• Context preservation across tasks\n• Specialized agent capabilities
+note over LLM : **LLM Integration Points**\n• ✅ Task analysis and decomposition\n• ✅ Agent matching and selection\n• ✅ Data analysis strategy planning\n• ✅ Content generation and structuring\n• ✅ Result validation and quality control\n• Natural language processing throughout
+
+note over DataAgent, ContentAgent : **Multi-Agent Coordination**\n• Task lifecycle management\n• Artifact exchange between agents\n• Context preservation across tasks\n• Specialized agent capabilities\n• ✅ LLM-guided decision making
 
 note over ClientAgent, PlannerAgent : **Task Lifecycle States**\n• submitted → working → completed\n• input-required (for multi-turn)\n• failed/canceled (error handling)\n• Context IDs for related tasks
 

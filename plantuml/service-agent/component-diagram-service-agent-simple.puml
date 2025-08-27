@@ -1,0 +1,61 @@
+@startuml
+' ======= Deutsche Telekom Magenta Theme =======
+!define DT_MAGENTA     #E20074
+!define DT_MAGENTA_DARK #B8005A
+!define DT_MAGENTA_LIGHT #F2CCE0
+!define DT_GRAY        #8C8C8C
+
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam defaultFontColor #333333
+skinparam ArrowColor DT_MAGENTA_DARK
+skinparam ArrowThickness 2
+
+skinparam package {
+  BackgroundColor DT_MAGENTA_LIGHT
+  BorderColor DT_MAGENTA
+  FontColor #333333
+}
+
+skinparam component {
+  BackgroundColor DT_MAGENTA
+  BorderColor DT_MAGENTA_DARK
+  FontColor #FFFFFF
+}
+
+top to bottom direction
+title Service Agent — Simplified Component View (with Policy Engine)
+
+' ======= External User/System =======
+actor "User" as USER #FFFFFF
+
+' ======= Service Agent (Core) =======
+package "SERVICE AGENT" as SA {
+  component "Request Handler\n«Entry point»" as HANDLER
+  component "Task Planner and Orchestrator\n«Break down & coordinate»" as PLANNER
+  component "Policy Engine\n«Guardrails & approvals»" as POLICY
+  component "State Manager\n«Track progress»" as STATE
+}
+
+' ======= Domain Agent =======
+package "DOMAIN AGENT" as DA {
+  component "Domain Logic\n«Wi-Fi/Network/etc.»" as DOMAIN
+  component "MCP Tools\n«Config/Logs/Tests»" as TOOLS
+}
+
+' ======= Flow with Policy Engine =======
+USER --> HANDLER : "Fix network issue"
+HANDLER --> PLANNER : analyze request
+PLANNER --> POLICY : check permissions
+POLICY --> PLANNER : approve/deny
+PLANNER --> STATE : track plan
+PLANNER --> DOMAIN : execute steps
+DOMAIN --> TOOLS : use tools
+TOOLS --> DOMAIN : results
+DOMAIN --> PLANNER : step complete
+PLANNER --> STATE : update status
+STATE --> HANDLER : progress
+HANDLER --> USER : status & results
+
+@enduml

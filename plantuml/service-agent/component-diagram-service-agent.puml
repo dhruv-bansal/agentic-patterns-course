@@ -1,0 +1,69 @@
+@startuml
+' ======= Theme (Magenta only, safe settings) =======
+!define MAGENTA       #D81B60
+!define MAGENTA_DARK  #880E4F
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam defaultFontColor #111111
+skinparam ArrowColor MAGENTA_DARK
+skinparam ArrowThickness 2
+
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor MAGENTA_DARK
+  FontColor #111111
+}
+
+skinparam component {
+  BackgroundColor MAGENTA
+  BorderColor MAGENTA_DARK
+  FontColor #FFFFFF
+}
+
+left to right direction
+title Service Agent — C4 Block View with Simple Internal Flow
+
+' ======= External Context =======
+rectangle "Channels\n(App • Care Console)" as CH #FFFFFF
+
+' ======= Service Agent (dominant) =======
+package "SERVICE AGENT" as SA {
+  component "Planner\n«Planning tool»" as PL
+  component "Orchestrator\n«Task runner & sub-agent coordinator»" as ORCH
+  component "Policy Engine\n«Prompts • guardrails • approvals»" as POL
+  component "State Store\n«Run history • audit • metrics»" as STATE
+  component "Communicator\n«Output channels • callbacks»" as COMM
+  component "Evaluation\n«Self-critique loop»" as EVAL
+}
+
+' ======= Domain side (MCP inside Domain Agent) =======
+package "DOMAIN AGENT" as DA {
+  component "Domain Logic\n(Wi-Fi / Provisioning / Outage ...)" as DLOG #FFFFFF
+  component "MCP Tools\n(Config • Logs • Ticketing • Tests)" as MCP #FFFFFF
+}
+
+' ======= Simple, numbered flow =======
+CH  --> PL   : 1) intent
+PL  --> ORCH : 2) plan
+ORCH --> POL  : 3) policy gate
+POL  --> ORCH : allow / approve
+ORCH --> DLOG : 4) domain step
+DLOG --> MCP  : tool call
+DLOG --> ORCH : result
+ORCH --> STATE: 5) record state
+ORCH --> COMM : 6) status / outcome
+COMM --> CH   : user update
+STATE --> EVAL: 7) run data
+EVAL ..> PL   : improvements
+EVAL ..> POL  : guardrail tuning
+
+legend right
+  Simple internal flow (numbered):
+  1 intent → Planner → Orchestrator
+  3 policy gate → execute domain step (MCP inside Domain Agent)
+  5 record state → 6 notify → 7 evaluate → feedback
+endlegend
+
+@enduml

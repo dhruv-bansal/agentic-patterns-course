@@ -1,0 +1,35 @@
+@startuml
+' ======= Minimal Theme =======
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 6
+skinparam ArrowColor #1976D2
+skinparam ArrowThickness 2
+
+skinparam rectangle {
+  BackgroundColor #E3F2FD
+  BorderColor #1976D2
+  FontColor #333333
+}
+
+left to right direction
+title Service Agent — Minimal Overview
+
+' ======= Core Components =======
+rectangle "User Request" as USER #FFFFFF
+rectangle "Service Agent\n«Coordinator»" as SERVICE
+rectangle "Domain Agent\n«Specialist + Tools»" as DOMAIN
+
+' ======= Simple Flow =======
+USER --> SERVICE : "Fix Wi-Fi issue"
+SERVICE --> DOMAIN : plan & execute
+DOMAIN --> SERVICE : results
+SERVICE --> USER : solution
+
+note bottom
+  **Key Concept:**
+  Service Agent coordinates high-level tasks
+  Domain Agent handles specialized work with tools
+end note
+
+@enduml

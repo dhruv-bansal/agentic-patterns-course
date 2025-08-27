@@ -13,12 +13,14 @@ participant "MCP Server\n(Tool Provider)" as MCPServer
 participant "File System Tool\n(read_file, write_file)" as FileSystemTool
 participant "Web Search Tool\n(search_web, get_url)" as WebSearchTool
 
+participant "LLM Service\n(Google Gemini/OpenAI)" as LLM
+
 == 1. MCP Server Discovery & Initialization ==
 
 User -> Agent : Request: "Research Python async patterns and create a summary document"
 activate Agent
 
-note over Agent : Agent needs to identify\nrequired capabilities:\n• Web search for research\n• File operations for document creation
+note over Agent : **Agent Logic:**\n• Received user request\n• First: Discover available MCP servers/tools\n• Then: Use LLM to analyze request + available tools
 
 Agent -> MCPServer : **MCP Initialize**\n{\n  "jsonrpc": "2.0",\n  "method": "initialize",\n  "params": {\n    "protocolVersion": "2024-11-05",\n    "capabilities": {\n      "tools": {"listChanged": true}\n    },\n    "clientInfo": {"name": "Research Agent", "version": "1.0"}\n  }\n}
 activate MCPServer
@@ -31,7 +33,14 @@ Agent -> MCPServer : **List Available Tools**\n{\n  "jsonrpc": "2.0",\n  "method
 
 MCPServer --> Agent : **Available Tools Response**\n{\n  "result": {\n    "tools": [\n      {\n        "name": "read_file",\n        "description": "Read contents of a file",\n        "inputSchema": {\n          "type": "object",\n          "properties": {"path": {"type": "string"}},\n          "required": ["path"]\n        }\n      },\n      {\n        "name": "write_file", \n        "description": "Write content to a file",\n        "inputSchema": {\n          "type": "object",\n          "properties": {\n            "path": {"type": "string"},\n            "content": {"type": "string"}\n          },\n          "required": ["path", "content"]\n        }\n      },\n      {\n        "name": "search_web",\n        "description": "Search the web for information",\n        "inputSchema": {\n          "type": "object", \n          "properties": {"query": {"type": "string"}},\n          "required": ["query"]\n        }\n      },\n      {\n        "name": "get_url",\n        "description": "Fetch content from a specific URL",\n        "inputSchema": {\n          "type": "object",\n          "properties": {"url": {"type": "string"}},\n          "required": ["url"]\n        }\n      }\n    ]\n  }\n}
 
-note over Agent : **Tool Selection Logic:**\n1. Parse available tools and schemas\n2. Match task requirements to tool capabilities\n3. Plan execution sequence:\n   • search_web: Research async patterns\n   • get_url: Get detailed content from sources\n   • write_file: Create summary document
+note over Agent : **Parse Available Tools:**\n• Tool schemas and capabilities\n• Input/output requirements\n• Parameter validation rules\n• Tool descriptions and purposes
+
+Agent -> LLM : **LLM Call: Request Analysis & Tool Selection**\n{\n  "prompt": "Given this user request and available MCP tools, create an execution plan",\n  "user_request": "Research Python async patterns and create a summary document",\n  "available_tools": [\n    {"name": "search_web", "description": "Search the web for information", "schema": {...}},\n    {"name": "get_url", "description": "Fetch content from a specific URL", "schema": {...}},\n    {"name": "read_file", "description": "Read contents of a file", "schema": {...}},\n    {"name": "write_file", "description": "Write content to a file", "schema": {...}}\n  ]\n}
+activate LLM
+LLM --> Agent : **LLM Response**\n{\n  "analysis": {\n    "task_type": "research_and_documentation",\n    "required_capabilities": ["web_search", "content_retrieval", "file_operations"],\n    "complexity": "medium"\n  },\n  "execution_plan": {\n    "steps": [\n      {"step": 1, "tool": "search_web", "purpose": "Find relevant articles on Python async patterns"},\n      {"step": 2, "tool": "get_url", "purpose": "Extract detailed content from top sources"},\n      {"step": 3, "tool": "write_file", "purpose": "Create comprehensive summary document"},\n      {"step": 4, "tool": "read_file", "purpose": "Verify document creation"}\n    ],\n    "reasoning": "Sequential workflow: research → content extraction → document creation → verification"\n  }\n}
+deactivate LLM
+
+note over Agent : **Agent Decision:**\n✅ Discovered available MCP tools first\n✅ LLM analyzed request + available tools\n• Created execution plan with selected tools\n• Ready to execute workflow
 
 == 3. Tool Execution Phase - Web Research ==
 
@@ -67,7 +76,12 @@ MCPServer --> Agent : **Tool Call Response**\n{\n  "result": {\n    "content": [
 
 note over Agent : **Step 3: Create summary document**\n**Agent processes research data and**\n**generates comprehensive summary**
 
-Agent -> Agent : **Content Generation:**\n• Analyze research findings\n• Structure key insights\n• Create comprehensive summary\n• Format as markdown document
+Agent -> LLM : **LLM Call: Content Generation**\n{\n  "prompt": "Create a comprehensive summary document about Python async patterns",\n  "research_data": {\n    "sources": ["https://realpython.com/async-io/", "..."],\n    "content": "# Python Async/Await Patterns\\n\\nAsync programming in Python..."\n  },\n  "requirements": "Well-structured markdown document with examples and best practices"\n}
+activate LLM
+LLM --> Agent : **LLM Response**\n{\n  "document_content": {\n    "title": "Python Async Patterns Summary",\n    "structure": ["Overview", "Key Patterns", "Best Practices", "Examples", "Recommendations"],\n    "content": "# Python Async Patterns Summary\\n\\n## Overview\\nThis document summarizes..."\n  }\n}
+deactivate LLM
+
+Agent -> Agent : **Content Generation:**\n• ✅ LLM generated structured content\n• Analyze research findings\n• Structure key insights from LLM\n• Format as markdown document
 
 Agent -> MCPServer : **Execute File Write Tool**\n{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": {\n    "name": "write_file",\n    "arguments": {\n      "path": "./python_async_patterns_summary.md",\n      "content": "# Python Async Patterns Summary\\n\\n## Overview\\nThis document summarizes best practices for Python async programming...\\n\\n## Key Patterns\\n1. **Basic async/await**\\n   - Use async def for coroutines\\n   - await for async operations\\n\\n2. **Task Management**\\n   - asyncio.create_task()\\n   - asyncio.gather()\\n..."\n    }\n  }\n}
 
@@ -100,19 +114,26 @@ MCPServer --> Agent : **Tool Call Response**\n{\n  "result": {\n    "content": [
 Agent -> MCPServer : **Close MCP Session**\n{\n  "jsonrpc": "2.0",\n  "method": "notifications/cancelled",\n  "params": {}\n}
 deactivate MCPServer
 
-Agent --> User : **Task Completed**\n✅ Research completed on Python async patterns\n✅ Summary document created: python_async_patterns_summary.md\n✅ Document contains 2,847 bytes of structured content\n\n**Tools Used:**\n• search_web: Found 5 relevant sources\n• get_url: Retrieved detailed content\n• write_file: Created summary document\n• read_file: Verified document creation
+Agent -> LLM : **LLM Call: Task Completion Validation**\n{\n  "prompt": "Validate if the task has been completed successfully",\n  "original_request": "Research Python async patterns and create a summary document",\n  "completed_actions": [\n    {"action": "web_search", "result": "Found 5 relevant sources"},\n    {"action": "content_extraction", "result": "Retrieved detailed content"},\n    {"action": "document_creation", "result": "Created summary document (2,847 bytes)"},\n    {"action": "verification", "result": "Confirmed document exists and readable"}\n  ]\n}
+activate LLM
+LLM --> Agent : **LLM Response**\n{\n  "validation": {\n    "task_completed": true,\n    "quality_assessment": "High quality research and documentation",\n    "completeness": "100%",\n    "recommendations": "Task fully satisfied user requirements"\n  }\n}
+deactivate LLM
+
+Agent --> User : **Task Completed**\n✅ Research completed on Python async patterns\n✅ Summary document created: python_async_patterns_summary.md\n✅ Document contains 2,847 bytes of structured content\n✅ LLM validated task completion (100%)\n\n**Tools Used:**\n• search_web: Found 5 relevant sources\n• get_url: Retrieved detailed content\n• write_file: Created summary document\n• read_file: Verified document creation\n\n**LLM Assistance:**\n• Request analysis and tool planning\n• Content generation and structuring\n• Task completion validation
 deactivate Agent
 
 == Key MCP Protocol Concepts Highlighted ==
 
 note over MCPServer : **MCP Server Capabilities**\n• Tool registration and discovery\n• JSON-RPC 2.0 communication\n• Schema-based input validation\n• Tool execution and response handling\n• Session management
 
-note over Agent : **Agent Tool Selection Logic**\n• Capability-based tool discovery\n• Task decomposition into tool operations\n• Sequential tool execution planning\n• Error handling and validation\n• Result aggregation and presentation
+note over Agent : **Agent Tool Selection Logic**\n• ✅ LLM-powered request analysis\n• ✅ Intelligent tool selection strategy\n• Capability-based tool discovery\n• Task decomposition into tool operations\n• Sequential tool execution planning\n• ✅ LLM-assisted content generation\n• Error handling and validation\n• ✅ LLM-validated task completion\n• Result aggregation and presentation
 
 note over FileSystemTool, WebSearchTool : **Tool Implementation Patterns**\n• Input schema validation\n• Atomic operation execution\n• Error reporting and handling\n• Resource management\n• State isolation between calls
 
 note over Agent, MCPServer : **MCP Communication Flow**\n• Initialize protocol connection\n• Discover available tools/resources\n• Execute tools with type-safe parameters\n• Handle responses and errors\n• Manage session lifecycle
 
-note over User, FileSystemTool : **End-to-End Tool Orchestration**\n• Multi-tool workflow coordination\n• Data flow between tool executions\n• Verification and validation steps\n• User feedback and reporting
+note over User, FileSystemTool : **End-to-End Tool Orchestration**\n• ✅ LLM-guided workflow planning\n• Multi-tool workflow coordination\n• Data flow between tool executions\n• ✅ AI-powered content generation\n• Verification and validation steps\n• ✅ LLM quality assessment\n• User feedback and reporting
+
+note over LLM : **LLM Integration Points**\n• ✅ Request analysis and capability mapping\n• ✅ Tool selection and execution planning\n• ✅ Content generation and structuring\n• ✅ Task completion validation\n• Natural language processing throughout\n• Decision making and strategy planning
 
 @enduml
