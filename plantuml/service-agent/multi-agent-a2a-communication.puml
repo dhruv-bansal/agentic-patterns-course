@@ -1,0 +1,74 @@
+@startuml
+' ======= Deutsche Telekom Magenta Theme =======
+!define DT_MAGENTA     #E20074
+!define DT_MAGENTA_DARK #B8005A
+!define DT_MAGENTA_LIGHT #F2CCE0
+!define DT_GRAY        #8C8C8C
+
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam defaultFontColor #333333
+skinparam ArrowColor DT_MAGENTA_DARK
+skinparam ArrowThickness 2
+
+skinparam package {
+  BackgroundColor DT_MAGENTA_LIGHT
+  BorderColor DT_MAGENTA
+  FontColor #333333
+}
+
+skinparam component {
+  BackgroundColor DT_MAGENTA
+  BorderColor DT_MAGENTA_DARK
+  FontColor #FFFFFF
+}
+
+top to bottom direction
+title Multi-Agent A2A Communication — Service & Domain Agent Interactions
+
+' ======= External User/System =======
+actor "User" as USER #FFFFFF
+
+' ======= Service Agents =======
+component "SERVICE AGENT 1\n«Customer Support»" as SA1 DT_MAGENTA
+component "SERVICE AGENT 2\n«Billing Agent»" as SA2 DT_MAGENTA
+
+' ======= Domain Agents =======
+component "DOMAIN AGENT 1\n«Network Management»" as DA1 DT_MAGENTA
+component "DOMAIN AGENT 2\n«Billing System»" as DA2 DT_MAGENTA
+
+' ======= Layout positioning =======
+USER -[hidden]- SA1
+SA1 -[hidden]- SA2
+SA1 -[hidden]- DA1
+DA1 -[hidden]- DA2
+
+' ======= A2A Protocol Communications =======
+
+' User interaction
+USER --> SA1 : "Fix customer\nnetwork & billing"
+
+' Service-to-Service A2A Communication
+SA1 -[#E20074,thickness=3]-> SA2 : **A2A Protocol**\nDelegate billing\ntasks
+
+' Service-to-Domain A2A Communication
+SA1 -[#E20074,thickness=3]-> DA1 : **A2A Protocol**\nExecute network\nfixes
+SA1 -[#E20074,thickness=3]-> DA2 : **A2A Protocol**\nQuery billing\nhistory
+
+' Domain-to-Domain A2A Communication
+DA1 -[#E20074,thickness=3]-> DA2 : **A2A Protocol**\nCross-reference\nnetwork & billing
+
+' Response flows (A2A Protocol)
+SA2 -[#B8005A,thickness=2]-> SA1 : **A2A Response**\nBilling task\nresults
+DA2 -[#B8005A,thickness=2]-> SA1 : **A2A Response**\nBilling data
+DA1 -[#B8005A,thickness=2]-> SA1 : **A2A Response**\nNetwork fixes\ncomplete
+DA2 -[#B8005A,thickness=2]-> DA1 : **A2A Response**\nCorrelated data
+
+' Final response to user
+SA1 --> USER : comprehensive\nsolution
+
+' ======= Legend =======
+note bottom : **A2A Protocol Communications**\n• Service ↔ Service: Task delegation\n• Domain ↔ Domain: Data correlation\n• Service ↔ Domain: Direct execution\n\n**Colors:**\n• Thick Red: A2A Requests\n• Medium Dark Red: A2A Responses
+
+@enduml

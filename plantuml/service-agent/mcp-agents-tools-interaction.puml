@@ -1,0 +1,82 @@
+@startuml
+' ======= Deutsche Telekom Magenta Theme =======
+!define DT_MAGENTA     #E20074
+!define DT_MAGENTA_DARK #B8005A
+!define DT_MAGENTA_LIGHT #F2CCE0
+!define DT_GRAY        #8C8C8C
+
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam defaultFontColor #333333
+skinparam ArrowColor DT_MAGENTA_DARK
+skinparam ArrowThickness 2
+
+skinparam component {
+  BackgroundColor DT_MAGENTA
+  BorderColor DT_MAGENTA_DARK
+  FontColor #FFFFFF
+}
+
+skinparam rectangle {
+  BackgroundColor DT_MAGENTA_LIGHT
+  BorderColor DT_MAGENTA
+  FontColor #333333
+}
+
+top to bottom direction
+title MCP Agent-Tool Interactions — Protocol Communication Patterns
+
+' ======= External User/System =======
+actor "User" as USER #FFFFFF
+
+' ======= Service Agents =======
+component "SERVICE AGENT\n«Customer Support»" as SA DT_MAGENTA
+
+' ======= Domain Agents =======
+component "NETWORK DOMAIN AGENT\n«Infrastructure Management»" as NDA DT_MAGENTA
+component "CUSTOMER PROFILE AGENT\n«Customer Data Management»" as CPA DT_MAGENTA
+
+' ======= MCP Tool Servers =======
+rectangle "DATABASE TOOLS\n«MCP Server»" as DB_TOOLS DT_MAGENTA_LIGHT
+rectangle "NETWORK TOOLS\n«MCP Server»" as NET_TOOLS DT_MAGENTA_LIGHT
+rectangle "MONITORING TOOLS\n«MCP Server»" as MON_TOOLS DT_MAGENTA_LIGHT
+
+' ======= Layout positioning =======
+USER -[hidden]- SA
+SA -[hidden]- NDA
+NDA -[hidden]- CPA
+CPA -[hidden]- DB_TOOLS
+DB_TOOLS -[hidden]- NET_TOOLS
+NET_TOOLS -[hidden]- MON_TOOLS
+
+' ======= MCP Protocol Communications =======
+
+' User interaction
+USER --> SA : "Check customer\nnetwork status"
+
+' Service Agent delegates to Domain Agents (A2A Protocol)
+SA -[#E20074,thickness=3]-> CPA : **A2A Protocol**\nGet customer\nprofile & history
+SA -[#E20074,thickness=3]-> NDA : **A2A Protocol**\nDiagnose network\nissues
+
+' Domain Agents use tools via MCP Protocol
+CPA -[#E20074,thickness=3]-> DB_TOOLS : **MCP Protocol**\nQuery customer\ndata
+NDA -[#E20074,thickness=3]-> NET_TOOLS : **MCP Protocol**\nRun network\ndiagnostics
+NDA -[#E20074,thickness=3]-> MON_TOOLS : **MCP Protocol**\nCheck interface\nstatus & metrics
+
+' Tool responses to Domain Agents (MCP Protocol)
+DB_TOOLS -[#B8005A,thickness=2]-> CPA : **MCP Response**\nCustomer profile\n& history
+NET_TOOLS -[#B8005A,thickness=2]-> NDA : **MCP Response**\nDiagnostic\nresults
+MON_TOOLS -[#B8005A,thickness=2]-> NDA : **MCP Response**\nInterface statistics\n& performance data
+
+' Domain Agents respond to Service Agent (A2A Protocol)
+CPA -[#B8005A,thickness=2]-> SA : **A2A Response**\nCustomer data\nretrieved
+NDA -[#B8005A,thickness=2]-> SA : **A2A Response**\nNetwork analysis\ncomplete
+
+' Final response to user
+SA --> USER : comprehensive\nnetwork status
+
+' ======= Legend =======
+note bottom : **Protocol Communications**\n• Service Agent → Domain Agent: A2A task delegation\n• Domain Agent → Tools: MCP requests for capabilities\n• Tools → Domain Agent: MCP responses with data\n\n**Colors:**\n• Thick Red: A2A/MCP Requests\n• Medium Dark Red: A2A/MCP Responses
+
+@enduml

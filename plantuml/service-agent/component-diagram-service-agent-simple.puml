@@ -35,7 +35,7 @@ package "SERVICE AGENT" as SA {
   component "Request Handler\n«Entry point»" as HANDLER
   component "Task Planner and Orchestrator\n«Break down & coordinate»" as PLANNER
   component "Policy Engine\n«Guardrails & approvals»" as POLICY
-  component "State Manager\n«Track progress»" as STATE
+  component "Memory\n«State Manager»" as STATE
 }
 
 ' ======= Domain Agent =======

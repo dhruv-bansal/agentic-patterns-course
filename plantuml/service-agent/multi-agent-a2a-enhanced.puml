@@ -1,0 +1,138 @@
+@startuml
+' ======= Deutsche Telekom Magenta Theme =======
+!define DT_MAGENTA     #E20074
+!define DT_MAGENTA_DARK #B8005A
+!define DT_MAGENTA_LIGHT #F2CCE0
+!define DT_GRAY        #8C8C8C
+
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam defaultFontColor #333333
+skinparam ArrowColor DT_MAGENTA_DARK
+skinparam ArrowThickness 2
+
+skinparam package {
+  BackgroundColor DT_MAGENTA_LIGHT
+  BorderColor DT_MAGENTA
+  FontColor #333333
+}
+
+skinparam component {
+  BackgroundColor DT_MAGENTA
+  BorderColor DT_MAGENTA_DARK
+  FontColor #FFFFFF
+}
+
+skinparam rectangle {
+  BackgroundColor #FFE6F2
+  BorderColor DT_MAGENTA
+  FontColor #333333
+}
+
+top to bottom direction
+title Multi-Agent A2A Communication Patterns
+
+' ======= Central Registry =======
+rectangle "A2A CENTRAL REGISTRY" as REGISTRY {
+  component "Agent Cards Repository" as CARDS
+  component "Discovery Service" as DISCOVERY
+  component "Task Routing" as ROUTING
+}
+
+' ======= Service Agent Orchestrator =======
+package "SERVICE AGENT ORCHESTRATOR" as SAO {
+  component "Request Handler\n«Entry point»" as HANDLER
+  component "Task Planner\n«Multi-agent coordination»" as PLANNER
+  component "A2A Client\n«Agent discovery & communication»" as A2A_CLIENT
+  component "Policy Engine\n«Cross-agent permissions»" as POLICY
+}
+
+' ======= Network Service Agent =======
+package "NETWORK SERVICE AGENT" as NSA {
+  component "Network Handler\n«Network domain logic»" as NET_HANDLER
+  component "A2A Server\n«Expose capabilities»" as NET_A2A
+  component "Network Tools\n«MCP interface»" as NET_TOOLS
+}
+
+' ======= Security Service Agent =======
+package "SECURITY SERVICE AGENT" as SSA {
+  component "Security Handler\n«Security domain logic»" as SEC_HANDLER
+  component "A2A Server\n«Expose capabilities»" as SEC_A2A
+  component "Security Tools\n«MCP interface»" as SEC_TOOLS
+}
+
+' ======= Infrastructure Service Agent =======
+package "INFRASTRUCTURE SERVICE AGENT" as ISA {
+  component "Infra Handler\n«Infrastructure domain logic»" as INFRA_HANDLER
+  component "A2A Server\n«Expose capabilities»" as INFRA_A2A
+  component "Infrastructure Tools\n«MCP interface»" as INFRA_TOOLS
+}
+
+' ======= External User =======
+actor "User" as USER #FFFFFF
+
+' ======= Agent Registration =======
+NET_A2A -.-> CARDS : register\ncapabilities
+SEC_A2A -.-> CARDS : register\ncapabilities
+INFRA_A2A -.-> CARDS : register\ncapabilities
+
+' ======= Main User Flow =======
+USER --> HANDLER : "Setup secure network\nfor new office"
+
+' ======= Service-to-Service A2A Communication =======
+HANDLER --> PLANNER : analyze complex request
+PLANNER --> POLICY : validate permissions
+POLICY --> PLANNER : approve operations
+
+PLANNER --> A2A_CLIENT : discover agents
+A2A_CLIENT --> DISCOVERY : query capabilities
+DISCOVERY --> CARDS : search agent cards
+CARDS --> DISCOVERY : matching agents
+DISCOVERY --> A2A_CLIENT : agent list
+
+' ======= Multi-Agent Task Coordination =======
+A2A_CLIENT --> NET_A2A : "configure network\ninfrastructure"
+NET_A2A --> NET_HANDLER : process request
+NET_HANDLER --> NET_TOOLS : configure switches/routers
+NET_TOOLS --> NET_HANDLER : config results
+NET_HANDLER --> NET_A2A : network ready
+
+A2A_CLIENT --> SEC_A2A : "apply security\npolicies"
+SEC_A2A --> SEC_HANDLER : process request
+SEC_HANDLER --> SEC_TOOLS : configure firewall/VPN
+SEC_TOOLS --> SEC_HANDLER : security results
+SEC_HANDLER --> SEC_A2A : security configured
+
+A2A_CLIENT --> INFRA_A2A : "provision\ncompute resources"
+INFRA_A2A --> INFRA_HANDLER : process request
+INFRA_HANDLER --> INFRA_TOOLS : provision VMs/storage
+INFRA_TOOLS --> INFRA_HANDLER : infra results
+INFRA_HANDLER --> INFRA_A2A : infrastructure ready
+
+' ======= Cross-Agent Dependencies =======
+NET_A2A -.-> SEC_A2A : "verify security\nfor network config"
+SEC_A2A -.-> INFRA_A2A : "ensure compute\nresources secure"
+
+' ======= Task Completion =======
+NET_A2A --> A2A_CLIENT : network complete
+SEC_A2A --> A2A_CLIENT : security complete
+INFRA_A2A --> A2A_CLIENT : infrastructure complete
+
+A2A_CLIENT --> PLANNER : all tasks complete
+PLANNER --> HANDLER : orchestration done
+HANDLER --> USER : "Secure network\nsetup complete"
+
+' ======= Legend =======
+note bottom
+  Communication Patterns:
+  -> Direct A2A Protocol calls
+  -.-> Registration & dependency calls
+  
+  Agent Types:
+  * Service Agent Orchestrator: Coordinates multi-agent tasks
+  * Domain Service Agents: Specialized capabilities (Network, Security, Infrastructure)
+  * A2A Registry: Central discovery and routing
+end note
+
+@enduml
